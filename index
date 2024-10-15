@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRONOGRAMA DE VISITAS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        select, input, button {
+            margin: 10px 0;
+            padding: 8px;
+            width: 100%;
+        }
+        #calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-top: 20px;
+        }
+        .day {
+            padding: 10px;
+            text-align: center;
+            background-color: #e0e0e0;
+            cursor: pointer;
+        }
+        .selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #dataframe {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        #dataframe th, #dataframe td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #dataframe th {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <h1>CRONOGRAMA DE VISITAS</h1>
+        <select id="municipioSelect">
+            <option value="">Seleccione un municipio</option>
+        </select>
+        <select id="userSelect">
+            <option value="">Seleccione un usuario</option>
+        </select>
+        <select id="sedeSelect" multiple>
+            <option value="">Seleccione sedes educativas</option>
+        </select>
+        <select id="monthSelect">
+            <option value="">Seleccione un mes</option>
+            <option value="0">Enero</option>
+            <option value="1">Febrero</option>
+            <option value="2">Marzo</option>
+            <option value="3">Abril</option>
+            <option value="4">Mayo</option>
+            <option value="5">Junio</option>
+            <option value="6">Julio</option>
+            <option value="7">Agosto</option>
+            <option value="8">Septiembre</option>
+            <option value="9">Octubre</option>
+            <option value="10">Noviembre</option>
+            <option value="11">Diciembre</option>
+        </select>
+        <div id="calendar"></div>
+        <button id="generateBtn">Agregar al Dataframe</button>
+        <button id="clearBtn">Borrar Dataframe</button>
+        <button id="clearSelectedDatesBtn">Deseleccionar Fechas</button> <!-- Nuevo botón para deseleccionar fechas -->
+        <table id="dataframe"></table>
+        <button id="downloadBtn">Descargar Excel</button>
+    </div>
+
+     <script>
+        const data = [
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "ACADEMICO- SEDE PRINCIPAL"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "ANTONIO JOSE DE SUCRE"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "INSTITUTO TECNICO AGRICOLA-SEDE PRINCIPAL"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "MARIA LUISA DE LA ESPADA"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "AGROPECUARIO MONTERREY SEDE PRINCIPAL-1"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "LA UNION"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "MIRAFLORES"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "MIRAVALLE"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "SAN ANTONIO"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "ANGEL CUADROS"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "ANTONIO GUENDICA"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "ARMANDO ROMERO LOZANO"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "EL CARMEN (ANGEL CUADROS)"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "EL CRUCERO"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "EL JARDIN"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "EL PLACER SEDE PRINCIPAL"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "EL SALADO"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "ISIDRA VILLALOBOS"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "JUAN PABLO I"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "LA FLORIDA"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "LA MESA"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "LA PLAYA DEL BUEY"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "LOS BANCOS"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "SANTA ROSA"},
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "ABSALON FERNANDEZ DE SOTO"},
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "GRAN COLOMBIA PRIMARIA"},
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "GUADALAJARA"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "JOSE MARIA VILLEGAS - SEDE PRINCIPAL"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "LEONARDO TASCON"},
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "AGROPECUARIO DE ALASKA"},
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "ALFREDO CORTAZAR TOLEDO"},
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "EL JANEIRO"},
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "LA MAGDALENA SEDE PRINCIPAL"},
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "MARCO FIDEL SUAREZ"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "CRISTOBAL COLON"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "JHON F. KENNEDY"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "JULIAN MENDOZA GUERRERO"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "LA HONDA"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "LA PLANTA"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "MANUEL ANTONIO SANCLEMENTE SEDE PRINCIPAL"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "ESC GRACIANA ALVAREZ"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "ESC MARISCAL SUCRE"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "NARCISO CABAL SALCEDO SEDE PRINCIPAL"},
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "LA SAGRADA FAMILIA"},
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "NUESTRA SEÑORA DE FATIMA - SEDE PRINCIPAL"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "CARLOS ARTURO CABAL"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "CARLOTA ARMERO"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "MARIA AUXILIADORA"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "SAN JOSE"},
+            {municipio: "BUGA", user: "STEPHANIA GUTIERREZ NUÑEZ", sede: "SAN VICENTE - SEDE PRINCIPAL"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "ESC GENERAL SANTANDER"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "ESC JOAQUIN CAMILO TORRES"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "ESC JORGE ELIECER GAITAN"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "TULIO ENRIQUE TASCON - SEDE PRINCIPAL"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "ESC CERRO RICO"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "EL CARMEN"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "ESC RAFAEL URIBE URIBE"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "TULIO ENRIQUE TASCON CHAMBIMBAL - SEDE PRINCIPAL"},
+            {municipio: "BUGA", user: "DIDIER RAMIRO GUERRERO TORRES", sede: "AGROPECUARIO MONTERREY SEDE PRINCIPAL-2"},
+            {municipio: "BUGA", user: "SANDRA MILENA TRIVIÑO VASQUEZ", sede: "GRAN COLOMBIA - SEDE PRINCIPAL -2"},
+            {municipio: "BUGA", user: "MICHEL STEFANY CARDONA RODRIGUEZ", sede: "ESC RAFAEL URIBE URIBE"},
+            {municipio: "CALI", user: "DUVAN ROMERO", sede: "29/01 IE ANTONIO JOSE CAMACHO"},
+            {municipio: "CALI", user: "DUVAN ROMERO", sede: "29/02 REPUBLICA DEL PERU"},
+            {municipio: "CALI", user: "DUVAN ROMERO", sede: "56/01 IE LA ANUNCIACION"},
+            {municipio: "CALI", user: "DUVAN ROMERO", sede: "56/02 LOS NARANJOS"},
+            {municipio: "CALI", user: "DUVAN ROMERO", sede: "56/03 PUERTA DEL SOL"},
+            {municipio: "CALI", user: "DUVAN ROMERO", sede: "58/01 IEGABRIEL GARCIA MARQUEZ"},
+            {municipio: "CALI", user: "DUVAN ROMERO", sede: "58/02 JOSE RAMON BEJARANO"},
+            {municipio: "CALI", user: "DUVAN ROMERO", sede: "58/04 ALFONSO BONILLA NAAR"},
+            {municipio: "CALI", user: "DUVAN ROMERO", sede: "70/02 LA PRESENTACION BARRIO SAN FERNANDO"},
+            {municipio: "CALI", user: "EMIRO GARCIA", sede: "79/01 IE PANCE"},
+            {municipio: "CALI", user: "EMIRO GARCIA", sede: "79/03 PIO XII"},
+            {municipio: "CALI", user: "EMIRO GARCIA", sede: "79/05 LAUREANO GOMEZ"}, 
+            {municipio: "CALI", user: "EMIRO GARCIA", sede: "41/01 IE CIUDAD MODELO"},
+            {municipio: "CALI", user: "EMIRO GARCIA", sede: "41/02 PRIMAVERA"},
+            {municipio: "CALI", user: "EMIRO GARCIA", sede: "79/02 REPUBLICA DE SANTO DOMINGO"},
+            {municipio: "CALI", user: "EMIRO GARCIA", sede: "79/04 SAN FRANCISCO"},
+            {municipio: "CALI", user: "IVAN SALAZAR", sede: "42/01 IE GENERAL FRANCISCO DE PAULA SANTANDER BARRIO EL JARDIN"},
+            {municipio: "CALI", user: "IVAN SALAZAR", sede: "42/02 JOSE VICENTE CONCHA"},
+            {municipio: "CALI", user: "IVAN SALAZAR", sede: "42/03 SAN PEDRO CODENAL"},
+            {municipio: "CALI", user: "IVAN SALAZAR", sede: "42/04 LEON XIII"},
+            {municipio: "CALI", user: "IVAN SALAZAR", sede: "42/05 JULIO ARBOLEDA"},            
+            {municipio: "CALI", user: "IVAN SALAZAR", sede: "47/02 BATALLA DE CARABOBO"},
+            {municipio: "CALI", user: "IVAN SALAZAR", sede: "47/03 FRANCISCO DE PAULA SANTANDER BARRIO NUEVA FLORESTA"},
+            {municipio: "CALI", user: "ENNA DANNELLY LEON", sede: "39/01 IE DIEZ DE MAYO"},
+            {municipio: "CALI", user: "ENNA DANNELLY LEON", sede: "39/02 CENTRO DOCENTE REPUBLICA DE ITALIA"},
+            {municipio: "CALI", user: "ENNA DANNELLY LEON", sede: "47/04 STHER ZORRILLA"},
+            {municipio: "CALI", user: "ENNA DANNELLY LEON", sede: "47/05 MI BOSQUESITO"},
+            {municipio: "CALI", user: "ENNA DANNELLY LEON", sede: "48/01 IE INDUSTRIAL MARICE SINISTERRA"},
+            {municipio: "CALI", user: "ENNA DANNELLY LEON", sede: "48/02 ASTURIAS"},
+            {municipio: "CALI", user: "ENNA DANNELLY LEON", sede: "48/03 FENALCO ASTURIAS"},
+            {municipio: "CALI", user: "ENNA DANNELLY LEON", sede: "47/01 IE JULIO CAICEDO Y TELLEZ"},
+            {municipio: "CALI", user: "JESUS DAVID BETANCOURT", sede: "55/01 IE MONSENOR RAMON ARCILA"},
+            {municipio: "CALI", user: "JESUS DAVID BETANCOURT", sede: "55/02 RAUL SILVA HOLGUIN"},
+            {municipio: "CALI", user: "JESUS DAVID BETANCOURT", sede: "55/03 ALFONSO REYES ECHANDIA"},
+            {municipio: "CALI", user: "JESUS DAVID BETANCOURT", sede: "55/04 PUERTAS DEL SOL IV Y V"},
+            {municipio: "CALI", user: "JESUS DAVID BETANCOURT", sede: "65/01 IE CARLOS HOLMES TRUJILLO"},
+            {municipio: "CALI", user: "JESUS DAVID BETANCOURT", sede: "65/02 POLICARPA SALAVARRIETA BARRIO ANTONIO NARIÑO"},
+            {municipio: "CALI", user: "JESUS DAVID BETANCOURT", sede: "65/03 LIZANDRO FRANKY"},
+            {municipio: "CALI", user: "JESUS DAVID BETANCOURT", sede: "65/04 CRISTO MAESTRO"},
+            {municipio: "CALI", user: "DORIAN HUERTAS", sede: "91/01 IE NUEVO LATIR"},
+            {municipio: "CALI", user: "DORIAN HUERTAS", sede: "57/02 ISAIAS HERNAN IBARRA"},
+            {municipio: "CALI", user: "DORIAN HUERTAS", sede: "57/03 ELIAS SALAZAR GARCIA"},
+            {municipio: "CALI", user: "DORIAN HUERTAS", sede: "57/04 DAMASO ZAPATA"},            
+            {municipio: "CALI", user: "DORIAN HUERTAS", sede: "57/01 IE GABRIELA MISTRAL"},            
+            {municipio: "CALI", user: "DORIAN HUERTAS", sede: "91/02 CIUDADELA EDUCATIVA ISAIAS DUARTE CANCINO"},            
+            {municipio: "CALI", user: "DORIAN HUERTAS", sede: "70/03 LA GRAN COLOMBIA LA GRAN COLOMBIA"},        
+            {municipio: "CALI", user: "JOHAN MORENO", sede: "82/01 IE LOS ANDES TIERRA DE HOMBRES"},
+            {municipio: "CALI", user: "JOHAN MORENO", sede: "82/02 JUAN PABLO I"},
+            {municipio: "CALI", user: "JOHAN MORENO", sede: "82/03 FRANCISCO JOSE DE CALDAS"},
+            {municipio: "CALI", user: "JOHAN MORENO", sede: "64/01 IE LIBARDO MADRID VALDERRAMA"},
+            {municipio: "CALI", user: "JOHAN MORENO", sede: "64/03 PABLO NERUDA"},
+            {municipio: "CALI", user: "JOHAN MORENO", sede: "64/04 PRIMERO DE MAYO"},
+            {municipio: "CALI", user: "JOHAN MORENO", sede: "64/02 ANGELICA SIERRA ARIZABALETA"},
+            {municipio: "CALI", user: "MARTHA ISABEL CEPEDA", sede: "63/03 ALEJANDRO MONTANO"},
+            {municipio: "CALI", user: "MARTHA ISABEL CEPEDA", sede: "63/04 ANTONIO NARINO"},
+            {municipio: "CALI", user: "MARTHA ISABEL CEPEDA", sede: "63/05 JOSE MARIA CARBONELL BARRIO ANTONIO NARIÑO"},
+            {municipio: "CALI", user: "MARTHA ISABEL CEPEDA", sede: "67/01 IE ALVARO ECHEVERRY"},
+            {municipio: "CALI", user: "MARTHA ISABEL CEPEDA", sede: "67/02 RUFINO JOSE CUERVO"},
+            {municipio: "CALI", user: "MARTHA ISABEL CEPEDA", sede: "67/04 EDUARDO RIASCOS GRUESO"},
+            {municipio: "CALI", user: "MARTHA ISABEL CEPEDA", sede: "67/03 LUIS EDUARDO NIETO CABALLERO"},            
+            {municipio: "CALI", user: "JENNIFER SANCHEZ", sede: "63/01 IE DONALD RODRIGO TAFUR"},
+            {municipio: "CALI", user: "JENNIFER SANCHEZ", sede: "63/02 FRANCISCO J. RUIZ"},
+            {municipio: "CALI", user: "JENNIFER SANCHEZ", sede: "81/01 IE VILLACARMELO CACIQUE CALARCA"},
+            {municipio: "CALI", user: "JENNIFER SANCHEZ", sede: "81/02 NUESTRA SENORA DEL CARMEN"},
+            {municipio: "CALI", user: "JENNIFER SANCHEZ", sede: "70/01 IE LICEO DEPARTAMENTAL"},
+            {municipio: "CALI", user: "JENNIFER SANCHEZ", sede: "81/02 NUESTRA SENORA DEL CARMEN SEDE ANT"},
+            {municipio: "CALI", user: "GILBERTO PANTOJA", sede: "80/01 IE LA BUITRERA JOSE MARIA GARCIA DE TOLEDO"},
+            {municipio: "CALI", user: "GILBERTO PANTOJA", sede: "80/02 LOS COMUNEROS"},
+            {municipio: "CALI", user: "GILBERTO PANTOJA", sede: "80/03 SOLEDAD ACOSTA DE SAMPER"},
+            {municipio: "CALI", user: "GILBERTO PANTOJA", sede: "80/04 NUESTRA SENORA DE LAS LAJAS"},
+            {municipio: "CALI", user: "GILBERTO PANTOJA", sede: "80/05 SAN GABRIEL"},            
+            {municipio: "CALI", user: "GILBERTO PANTOJA", sede: "92/01 IE GENERAL JOSE MARIA CABAL BAC"}, 
+            {municipio: "CALI", user: "GILBERTO PANTOJA", sede: "92/01 IE GENERAL JOSE MARIA CABAL PRI"} 
+  
+            
+        ];
+     
+        const municipioSelect = document.getElementById('municipioSelect');
+        const userSelect = document.getElementById('userSelect');
+        const sedeSelect = document.getElementById('sedeSelect');
+        const monthSelect = document.getElementById('monthSelect');
+        const calendar = document.getElementById('calendar');
+        const generateBtn = document.getElementById('generateBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const dataframeTable = document.getElementById('dataframe');
+        const clearSelectedDatesBtn = document.getElementById('clearSelectedDatesBtn'); // Botón para deseleccionar fechas
+        const downloadBtn = document.getElementById('downloadBtn');
+        let dataframe = [];
+
+        // Poblar el selector de municipios
+        const municipios = [...new Set(data.map(item => item.municipio))];
+        municipios.forEach(municipio => {
+            const option = document.createElement('option');
+            option.value = option.textContent = municipio;
+            municipioSelect.appendChild(option);
+        });
+
+        // Actualizar usuarios al seleccionar municipio
+        municipioSelect.addEventListener('change', () => {
+            const selectedMunicipio = municipioSelect.value;
+            const users = [...new Set(data.filter(item => item.municipio === selectedMunicipio).map(item => item.user))];
+            userSelect.innerHTML = '<option value="">Seleccione un usuario</option>';
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = option.textContent = user;
+                userSelect.appendChild(option);
+            });
+            sedeSelect.innerHTML = '<option value="">Seleccione sedes educativas</option>';
+        });
+
+        // Actualizar sedes al seleccionar usuario
+        userSelect.addEventListener('change', () => {
+            const selectedMunicipio = municipioSelect.value;
+            const selectedUser = userSelect.value;
+            const sedes = data.filter(item => item.municipio === selectedMunicipio && item.user === selectedUser).map(item => item.sede);
+            sedeSelect.innerHTML = '';
+            sedes.forEach(sede => {
+                const option = document.createElement('option');
+                option.value = option.textContent = sede;
+                sedeSelect.appendChild(option);
+            });
+        });
+
+        // Generar calendario en función del mes seleccionado
+        monthSelect.addEventListener('change', () => {
+            const selectedMonth = parseInt(monthSelect.value);
+            generateCalendar(selectedMonth);
+        });
+
+        function generateCalendar(month) {
+            calendar.innerHTML = '';
+            const currentDate = moment().month(month).startOf('month');
+            const daysInMonth = currentDate.daysInMonth();
+
+            for (let i = 0; i < daysInMonth; i++) {
+                const day = document.createElement('div');
+                day.className = 'day';
+                day.textContent = currentDate.format('DD/MM/YYYY');
+                day.addEventListener('click', () => day.classList.toggle('selected'));
+                calendar.appendChild(day);
+                currentDate.add(1, 'day');
+            }
+        }
+
+        // Renderizar el dataframe en la tabla
+        function renderDataframe() {
+            dataframeTable.innerHTML = '';
+            if (dataframe.length > 0) {
+                const headers = Object.keys(dataframe[0]);
+                const headerRow = dataframeTable.insertRow();
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+                dataframe.forEach(row => {
+                    const tr = dataframeTable.insertRow();
+                    headers.forEach(header => {
+                        const td = tr.insertCell();
+                        td.textContent = row[header];
+                    });
+                });
+            }
+        }
+
+        // Agregar nuevas filas al dataframe
+        generateBtn.addEventListener('click', () => {
+            const selectedMunicipio = municipioSelect.value;
+            const selectedUser = userSelect.value;
+            const selectedSedes = Array.from(sedeSelect.selectedOptions).map(option => option.value);
+            const selectedDates = Array.from(document.querySelectorAll('.day.selected')).map(day => day.textContent);
+            
+            selectedSedes.forEach(sede => {
+                selectedDates.forEach(date => {
+                    dataframe.push({Municipio: selectedMunicipio, Usuario: selectedUser, Sede: sede, Fecha: date});
+                });
+            });
+
+            renderDataframe(); // Volver a renderizar la tabla
+        });
+
+         // Borrar el dataframe
+         clearBtn.addEventListener('click', () => {
+            dataframe = [];
+            renderDataframe(); // Limpiar la tabla
+        });
+
+        // Deseleccionar todas las fechas seleccionadas
+        clearSelectedDatesBtn.addEventListener('click', () => {
+            document.querySelectorAll('.day.selected').forEach(day => day.classList.remove('selected'));
+        });
+
+        // Descargar Excel
+        downloadBtn.addEventListener('click', () => {
+            const ws = XLSX.utils.json_to_sheet(dataframe);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Programación");
+            XLSX.writeFile(wb, "programacion_educativa.xlsx");
+        });
+    </script>
+</body>
+</html>
